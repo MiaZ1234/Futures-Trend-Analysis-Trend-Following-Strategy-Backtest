@@ -67,22 +67,20 @@ Robustness & Limitation Diagnostics
 
 ## Methodology
 
-### 1. Statistical Price Diagnostics
+### Statistical Price Diagnostics
 
-Before implementing the strategy, the project examines whether the underlying price series exhibit departures from random-walk behavior.
-
-Two approaches are used:
+Before implementing the trading strategy, the project examines whether the underlying price series exhibit departures from random-walk behavior using:
 
 - **Lo–MacKinlay heteroskedasticity-robust Variance Ratio tests**
 - **Push-Response analysis**
 
 For SY, statistically significant variance ratios below one appear at several short-to-intermediate horizons, with the strongest evidence around approximately **20–80 minutes**, consistent with short-horizon mean reversion.
 
-Push-response diagnostics reveal asymmetric short-horizon behavior: SY exhibits stronger reversal, particularly following positive shocks, while AUG shows more continuation-like behavior.
+Push-response diagnostics reveal different short-horizon dynamics across the two markets: SY exhibits stronger reversal behavior, particularly following positive shocks, while AUG shows more continuation-like behavior.
 
 These findings do not necessarily contradict longer-horizon trend following because the trading strategy operates over substantially longer channel horizons.
 
-### 2. Strategy Engine
+### Strategy Engine
 
 The trading system follows a **Channel WithDDControl** trend-following framework with:
 
@@ -92,15 +90,15 @@ The trading system follows a **Channel WithDDControl** trend-following framework
 - trailing drawdown-control stops;
 - futures point-value conversion;
 - transaction-cost/slippage accounting;
-- bar-level P&L and position tracking;
+- bar-level position and P&L tracking;
 - trade-level attribution;
 - cumulative equity and drawdown tracking.
 
 Current-bar information is excluded from the channel used to generate the corresponding breakout signal, preventing look-ahead bias in channel construction.
 
-The strategy is validated through accounting reconciliation and consistency checks between the optimization and path-based backtesting engines.
+The implementation is validated through accounting reconciliation and consistency checks between the optimization and path-based backtesting engines.
 
-### 3. Exhaustive Parameter Optimization
+### Exhaustive Parameter Optimization
 
 Two strategy parameters are optimized:
 
@@ -119,9 +117,7 @@ The optimization objective is:
 
 The complete parameter grid is evaluated for every optimization window rather than approximated through random or Bayesian search.
 
-Optimized rolling-channel construction and parallelized stop-parameter evaluation are used to make repeated full-grid optimization computationally feasible.
-
-### 4. Rolling Walk-Forward Validation
+### Rolling Walk-Forward Validation
 
 The baseline framework uses:
 
@@ -137,7 +133,7 @@ For each OOS quarter:
 3. only OOS P&L is retained for performance evaluation;
 4. OOS P&L is stitched chronologically into a continuous equity curve.
 
-The main analysis uses an **IS-conditioned OOS implementation**, allowing strategy state entering each OOS period to be generated from its corresponding historical in-sample path while preventing future parameter information from entering the optimization.
+The main analysis uses an **IS-conditioned OOS implementation**, allowing the strategy state entering each OOS period to be generated from its corresponding historical in-sample path while preventing future parameter information from entering the optimization.
 
 ---
 
@@ -181,19 +177,26 @@ Key OOS statistics:
 
 The strategy retains a positive historical edge after repeated parameter re-estimation, transaction costs, and rolling OOS evaluation.
 
-A separate full-history optimization is used only as a **hindsight in-sample benchmark**. The SY full-sample optimum is `ChnLen = 3810` and `StpPct = 0.009`, with a Daily Sharpe of **1.191** and Calmar of **0.621**.
+### Full-Sample Hindsight Benchmark
 
-The OOS trade and risk metrics show no clear collapse relative to the hindsight benchmark, although this is not interpreted as proof that the strategy is free from overfitting.
+A separate full-history optimization is used only as a **hindsight in-sample benchmark**, not as a tradable OOS strategy.
 
----
+The SY full-sample optimum is:
 
-## SY Window Sensitivity
+- `ChnLen = 3810`
+- `StpPct = 0.009`
+- CAGR: **2.28%**
+- Daily Sharpe: **1.191**
+- Maximum Drawdown: **-3.68%**
+- Calmar: **0.621**
 
-The baseline 4-year / 3-month specification is not selected ex post from the tested alternatives.
+The rolling OOS results remain positive relative to this hindsight benchmark, although differences are interpreted using normalized performance and risk measures rather than raw cumulative P&L because the evaluation periods differ.
 
-Alternative in-sample and OOS horizons are evaluated as robustness checks on an identical common comparison period.
+### SY Window Sensitivity
 
-Across the tested SY specifications:
+Alternative combinations of in-sample length \(T\) and OOS horizon \(\tau\) are evaluated as robustness checks rather than used to select the best specification ex post.
+
+Across the tested SY specifications on a common comparison period:
 
 - CAGR: approximately **3.64% – 3.67%**
 - Daily Sharpe: approximately **1.34 – 1.45**
@@ -206,12 +209,7 @@ The historical edge therefore does not appear uniquely dependent on the baseline
 
 ## Secondary-Market Replication — SHFE Gold Futures
 
-The research framework is replicated on **SHFE Gold Futures (AUG)** using the same:
-
-- strategy logic;
-- optimization objective;
-- 91,296-point parameter grid;
-- baseline 4-year IS / 3-month OOS framework.
+The research framework is replicated on **SHFE Gold Futures (AUG)** using the same strategy logic, optimization objective, 91,296-point parameter grid, and baseline 4-year IS / 3-month OOS design.
 
 The AUG rolling experiment contains:
 
@@ -229,7 +227,6 @@ Key OOS statistics:
 | Maximum Drawdown | **-9.91%** |
 | Calmar | **8.336** |
 | Profit Factor | **7.186** |
-| Trade Win Rate | **58.38%** |
 
 Because these results are exceptionally strong, the analysis does not interpret the headline performance at face value. Additional diagnostics examine performance concentration, session-gap dependence, parameter stability, and sensitivity to the walk-forward design.
 
@@ -266,37 +263,31 @@ The optimized AUG stop parameter repeatedly selects:
 
 `StpPct = 0.005`
 
-the lower boundary of the prescribed parameter grid.
+which is the lower boundary of the prescribed parameter grid.
 
 The lower-bound selection frequency is **100%** in both the baseline rolling optimization and the tested AUG sensitivity specifications.
 
-This suggests that the exact stop parameter is not fully identified within the prescribed optimization domain and should be treated as a limitation rather than evidence of parameter stability.
+This suggests that the stop parameter is not fully identified within the prescribed optimization domain and should be treated as a limitation rather than evidence of parameter stability.
 
 ![AUG Robustness Diagnostics](Output/figures/aug_robustness_diagnostics.png)
 
----
-
-## AUG Window Sensitivity
+### AUG Window Sensitivity
 
 Because AUG has a substantially shorter available history than SY, the feasible sensitivity design uses:
 
-- \(T \in \{4,5,6\}\) years;
-- \(\tau \in \{3,6\}\) months.
+- \(T \in \{4,5,6\}\) years
+- \(\tau \in \{3,6\}\) months
 
 All six tested specifications remain profitable on the identical common OOS comparison period.
 
-Common-period results span approximately:
-
-| Metric | Range |
+| Metric | Common-Period Range |
 |---|---:|
 | CAGR | **167.68% – 183.05%** |
 | Daily Sharpe | **3.98 – 4.30** |
 | Maximum Drawdown | **-14.14%** |
 | Calmar | **11.86 – 12.94** |
 
-The results show limited sensitivity to the tested window specifications.
-
-However, AUG's shorter history and the small number of OOS windows—particularly for the longest estimation windows—limit the strength of the inference.
+The results show limited sensitivity to the tested window specifications. However, the shorter AUG history and small number of OOS windows limit the strength of the inference.
 
 ---
 
@@ -372,14 +363,7 @@ The notebooks form a sequential research pipeline:
 
 The project is implemented primarily in Python.
 
-Core libraries include:
-
-- NumPy
-- pandas
-- Matplotlib
-- SciPy
-- Numba
-- PyArrow
+Core libraries include **NumPy, pandas, Matplotlib, SciPy, Numba, and PyArrow**.
 
 Install the required dependencies with:
 
