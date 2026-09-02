@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Jupyter
+*/.ipynb_checkpoints/
+
+# Environment
+.env
+.venv/
+venv/
+
+# Generated figures
+# figures/*.png
+
+# Temporary files
+*.tmp
+*.log
+
+# Large/intermediate processed data
+data/clean/*.parquet
+data/clean/*.pkl
